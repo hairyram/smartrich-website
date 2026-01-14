@@ -119,7 +119,7 @@ export function CTA() {
               Ready to Transform Your <br/> Wealth Management?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Join leading families and wealth managers who trust Smart&Rich for their financial intelligence.
+              Join leading families and wealth managers who trust SmartRich for their financial intelligence.
             </p>
           </div>
 
