@@ -67,10 +67,15 @@ export function CTA() {
   }, []);
 
   const getRecaptchaToken = useCallback(async (): Promise<string> => {
+    console.log("reCAPTCHA Debug - Site key:", RECAPTCHA_SITE_KEY ? RECAPTCHA_SITE_KEY.substring(0, 10) + "..." : "NOT SET");
+    console.log("reCAPTCHA Debug - Loaded:", recaptchaLoaded);
+    
     if (!RECAPTCHA_SITE_KEY || !recaptchaLoaded) {
       return "no-recaptcha-configured";
     }
-    return window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact_form" });
+    const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact_form" });
+    console.log("reCAPTCHA Debug - Token length:", token.length);
+    return token;
   }, [recaptchaLoaded]);
 
   const submitMutation = useMutation({
