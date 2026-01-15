@@ -24,7 +24,9 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
       body: `secret=${secretKey}&response=${token}`,
     });
 
-    const data = await response.json() as { success: boolean; score?: number };
+    const data = await response.json() as { success: boolean; score?: number; "error-codes"?: string[] };
+    
+    console.log("reCAPTCHA response:", JSON.stringify(data));
     
     // For reCAPTCHA v3, check score (0.0 - 1.0, higher is more likely human)
     // Score of 0.5 is a reasonable threshold
