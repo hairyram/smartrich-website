@@ -4,6 +4,11 @@ import { storage } from "./storage";
 import { insertContactSubmissionSchema } from "@shared/schema";
 import { z } from "zod";
 import { createChallenge, verifySolution } from "altcha-lib";
+import crypto from "crypto";
+
+if (typeof globalThis.crypto === "undefined") {
+  (globalThis as any).crypto = crypto;
+}
 
 const contactFormSchema = insertContactSubmissionSchema.extend({
   altcha: z.string().min(1, "ALTCHA verification required"),
