@@ -3,50 +3,33 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertContactSubmissionSchema } from "@shared/schema";
 import { z } from "zod";
+import { createChallenge, verifySolution } from "altcha-lib";
 
 const contactFormSchema = insertContactSubmissionSchema.extend({
-  recaptchaToken: z.string().min(1, "reCAPTCHA verification required"),
+  altcha: z.string().min(1, "ALTCHA verification required"),
 });
 
-async function verifyRecaptcha(token: string): Promise<boolean> {
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-  
-  if (!secretKey) {
-    console.warn("RECAPTCHA_SECRET_KEY not set - skipping verification");
-    return true;
-  }
-
-  // Debug: Log key prefix and token prefix
-  console.log("reCAPTCHA Debug - Secret key starts with:", secretKey.substring(0, 10) + "...");
-  console.log("reCAPTCHA Debug - Token starts with:", token.substring(0, 20) + "...");
-  console.log("reCAPTCHA Debug - Token length:", token.length);
-
-  try {
-    const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `secret=${secretKey}&response=${token}`,
-    });
-
-    const data = await response.json() as { success: boolean; score?: number; "error-codes"?: string[] };
-    
-    console.log("reCAPTCHA response:", JSON.stringify(data));
-    
-    // For reCAPTCHA v3, check score (0.0 - 1.0, higher is more likely human)
-    // Score of 0.5 is a reasonable threshold
-    return data.success && (data.score === undefined || data.score >= 0.5);
-  } catch (error) {
-    console.error("reCAPTCHA verification failed:", error);
-    return false;
-  }
-}
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || "smartrich-altcha-secret-key-2024";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   
-  // Contact form submission endpoint
+  app.get("/api/altcha/challenge", async (_req, res) => {
+    try {
+      const challenge = await createChallenge({
+        hmacKey: ALTCHA_HMAC_KEY,
+        maxNumber: 50000,
+        expires: new Date(Date.now() + 10 * 60 * 1000),
+      });
+      res.json(challenge);
+    } catch (error) {
+      console.error("ALTCHA challenge error:", error);
+      res.status(500).json({ error: "Failed to generate challenge" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const parsed = contactFormSchema.safeParse(req.body);
@@ -58,15 +41,13 @@ export async function registerRoutes(
         });
       }
 
-      const { recaptchaToken, ...submissionData } = parsed.data;
+      const { altcha, ...submissionData } = parsed.data;
 
-      // Verify reCAPTCHA
-      const isHuman = await verifyRecaptcha(recaptchaToken);
-      if (!isHuman) {
-        return res.status(403).json({ error: "reCAPTCHA verification failed" });
+      const isValid = await verifySolution(altcha, ALTCHA_HMAC_KEY, true);
+      if (!isValid) {
+        return res.status(403).json({ error: "ALTCHA verification failed" });
       }
 
-      // Store submission
       const submission = await storage.createContactSubmission(submissionData);
       
       return res.status(201).json({ 
