@@ -122,47 +122,248 @@ This creates `catalyst.json` and `app-config.json` files.
 
 ---
 
-## Step 3: Database Setup
+## Step 3: Database Setup with Catalyst Data Store
 
-Zoho Catalyst offers two database options:
+Replace the PostgreSQL storage with Catalyst's built-in Data Store.
 
-### Option A: Use Catalyst Data Store (Recommended for Simple Apps)
+### 3.1 Create Tables in Catalyst Console
 
-Catalyst provides a built-in NoSQL-like data store. Modify your storage layer:
+Go to **Catalyst Console** → **Data Store** and create these tables:
 
-```javascript
+**Table 1: Users**
+| Column Name | Data Type |
+|-------------|-----------|
+| ROWID | (auto-generated) |
+| username | Text |
+| password | Text |
+
+**Table 2: ContactSubmissions**
+| Column Name | Data Type |
+|-------------|-----------|
+| ROWID | (auto-generated) |
+| name | Text |
+| email | Text |
+| phone | Text |
+| message | Text |
+| createdAt | Text |
+
+### 3.2 Replace server/storage.ts
+
+Create a new file `server/storage-catalyst.ts` with the complete implementation:
+
+```typescript
+// server/storage-catalyst.ts
+// Complete Catalyst Data Store implementation for all IStorage methods
+
+import type { Request } from 'express';
+
 const catalyst = require('zcatalyst-sdk-node');
 
-async function createContactSubmission(req, data) {
-  const app = catalyst.initialize(req);
-  const datastore = app.datastore();
-  const table = datastore.table('ContactSubmissions');
-  
-  return await table.insertRow({
-    name: data.name,
-    email: data.email,
-    phone: data.phone,
-    message: data.message,
-    createdAt: new Date().toISOString()
-  });
+// Types (matching your existing schema)
+export interface User {
+  id: string;
+  username: string;
+  password: string;
 }
+
+export interface InsertUser {
+  username: string;
+  password: string;
+}
+
+export interface ContactSubmission {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  message: string | null;
+  createdAt: Date;
+}
+
+export interface InsertContactSubmission {
+  name: string;
+  email: string;
+  phone: string;
+  message?: string;
+}
+
+export interface IStorage {
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission>;
+  getContactSubmissions(): Promise<ContactSubmission[]>;
+}
+
+// Helper to get Catalyst app from request
+let currentRequest: Request | null = null;
+
+export function setCatalystRequest(req: Request) {
+  currentRequest = req;
+}
+
+function getCatalystApp() {
+  if (!currentRequest) {
+    throw new Error('Catalyst request not set. Call setCatalystRequest(req) first.');
+  }
+  return catalyst.initialize(currentRequest);
+}
+
+export class CatalystStorage implements IStorage {
+  
+  // ============ USER METHODS ============
+  
+  async getUser(id: string): Promise<User | undefined> {
+    try {
+      const app = getCatalystApp();
+      const datastore = app.datastore();
+      const table = datastore.table('Users');
+      
+      const row = await table.getRow(parseInt(id));
+      if (!row) return undefined;
+      
+      return {
+        id: row.ROWID.toString(),
+        username: row.username,
+        password: row.password
+      };
+    } catch (error) {
+      console.error('getUser error:', error);
+      return undefined;
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      const app = getCatalystApp();
+      const zcql = app.zcql();
+      
+      // Use ZCQL (Zoho's SQL-like query language) to search
+      const query = `SELECT ROWID, username, password FROM Users WHERE username = '${username.replace(/'/g, "''")}'`;
+      const result = await zcql.executeZCQLQuery(query);
+      
+      if (!result || result.length === 0) return undefined;
+      
+      const row = result[0].Users;
+      return {
+        id: row.ROWID.toString(),
+        username: row.username,
+        password: row.password
+      };
+    } catch (error) {
+      console.error('getUserByUsername error:', error);
+      return undefined;
+    }
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const app = getCatalystApp();
+    const datastore = app.datastore();
+    const table = datastore.table('Users');
+    
+    const row = await table.insertRow({
+      username: insertUser.username,
+      password: insertUser.password
+    });
+    
+    return {
+      id: row.ROWID.toString(),
+      username: row.username,
+      password: row.password
+    };
+  }
+
+  // ============ CONTACT SUBMISSION METHODS ============
+
+  async createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission> {
+    const app = getCatalystApp();
+    const datastore = app.datastore();
+    const table = datastore.table('ContactSubmissions');
+    
+    const now = new Date().toISOString();
+    
+    const row = await table.insertRow({
+      name: submission.name,
+      email: submission.email,
+      phone: submission.phone,
+      message: submission.message || '',
+      createdAt: now
+    });
+    
+    return {
+      id: parseInt(row.ROWID),
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      message: row.message || null,
+      createdAt: new Date(row.createdAt)
+    };
+  }
+
+  async getContactSubmissions(): Promise<ContactSubmission[]> {
+    try {
+      const app = getCatalystApp();
+      const zcql = app.zcql();
+      
+      const query = 'SELECT ROWID, name, email, phone, message, createdAt FROM ContactSubmissions ORDER BY createdAt DESC';
+      const result = await zcql.executeZCQLQuery(query);
+      
+      if (!result || result.length === 0) return [];
+      
+      return result.map((item: any) => {
+        const row = item.ContactSubmissions;
+        return {
+          id: parseInt(row.ROWID),
+          name: row.name,
+          email: row.email,
+          phone: row.phone,
+          message: row.message || null,
+          createdAt: new Date(row.createdAt)
+        };
+      });
+    } catch (error) {
+      console.error('getContactSubmissions error:', error);
+      return [];
+    }
+  }
+}
+
+export const storage = new CatalystStorage();
 ```
 
-Create the table in Catalyst Console:
-1. Go to **Catalyst Console** → **Data Store**
-2. Create table **ContactSubmissions** with columns:
-   - `name` (Text)
-   - `email` (Text)
-   - `phone` (Text)
-   - `message` (Text)
-   - `createdAt` (DateTime)
+### 3.3 Update server/routes.ts for Catalyst
 
-### Option B: Use External PostgreSQL (Keep Current Setup)
+Modify your routes to pass the request object to Catalyst:
 
-You can connect to an external PostgreSQL database (like Neon, Supabase, or a self-hosted instance):
+```typescript
+// At the top of server/routes.ts
+import { setCatalystRequest } from './storage-catalyst';
 
-1. Set up your PostgreSQL database externally
-2. Add environment variables in Catalyst Console
+// Add middleware before your routes
+app.use((req, res, next) => {
+  setCatalystRequest(req);
+  next();
+});
+```
+
+### 3.4 Switch Storage Implementation
+
+When deploying to Catalyst, update your imports:
+
+```typescript
+// For Catalyst deployment, change:
+import { storage } from './storage';
+
+// To:
+import { storage, setCatalystRequest } from './storage-catalyst';
+```
+
+### 3.5 Important Notes
+
+1. **ROWID**: Catalyst uses `ROWID` as the auto-generated primary key (similar to `id` in PostgreSQL)
+2. **ZCQL**: Catalyst's query language is similar to SQL but with some differences
+3. **Request Context**: Catalyst SDK needs the Express request object to authenticate
+4. **Data Types**: Use Text for most fields; Catalyst will handle conversion
 
 ---
 
@@ -172,12 +373,11 @@ You can connect to an external PostgreSQL database (like Neon, Supabase, or a se
 
 Go to **Catalyst Console** → **Project Settings** → **Environment Variables**
 
-Add the following:
+Add the following (no database URL needed when using Catalyst Data Store):
 
 | Variable | Value |
 |----------|-------|
 | `NODE_ENV` | `production` |
-| `DATABASE_URL` | `postgresql://user:pass@host:5432/db` |
 | `RECAPTCHA_SECRET_KEY` | `your-recaptcha-secret` |
 | `VITE_RECAPTCHA_SITE_KEY` | `your-recaptcha-site-key` |
 | `SESSION_SECRET` | `your-session-secret` |
@@ -245,15 +445,15 @@ SSL certificates are automatically provisioned.
 
 ---
 
-## Step 7: Database Migration
+## Step 7: Verify Data Store Tables
 
-If using external PostgreSQL, run migrations before first deployment:
+After deployment, verify your tables are created in Catalyst Console:
 
-```bash
-# Set DATABASE_URL locally first
-export DATABASE_URL="your-database-url"
-npm run db:push
-```
+1. Go to **Catalyst Console** → **Data Store**
+2. Confirm **Users** and **ContactSubmissions** tables exist
+3. Check column definitions match the schema above
+
+No manual migration is needed - Catalyst Data Store tables are created through the console.
 
 ---
 
