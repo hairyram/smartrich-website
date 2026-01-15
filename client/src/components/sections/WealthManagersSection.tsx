@@ -1,5 +1,5 @@
 import { Users, Sparkles, Blocks, ScanFace, TrendingUp, ArrowRight, LineChart, RefreshCw, MessageSquare, CheckCircle2, ArrowDown, PieChart, Target, Laptop, ShieldCheck, Settings2 } from "lucide-react";
-import managerImg from "@assets/generated_images/professional_wealth_manager_dashboard_with_rupee.png";
+import managerImg from "@/assets/professional_wealth_manager_dashboard_with_rupee.png";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";

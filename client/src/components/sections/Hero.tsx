@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ChevronRight } from "lucide-react";
-import heroBg from "@assets/generated_images/abstract_financial_growth_background.png";
+import heroBg from "@/assets/abstract_financial_growth_background.png";
 
 export function Hero() {
   return (

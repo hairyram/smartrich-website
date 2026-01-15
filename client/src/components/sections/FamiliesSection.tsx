@@ -1,5 +1,5 @@
 import { PieChart, Lock, FileText, Globe, Calculator, ArrowRight, ShieldCheck, Database, Landmark, ScrollText } from "lucide-react";
-import familyImg from "@assets/generated_images/family_office_dashboard_with_rupee.png";
+import familyImg from "@/assets/family_office_dashboard_with_rupee.png";
 import { Button } from "@/components/ui/button";
 
 export function FamiliesSection() {
