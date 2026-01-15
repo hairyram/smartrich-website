@@ -193,11 +193,15 @@ export interface IStorage {
   getContactSubmissions(): Promise<ContactSubmission[]>;
 }
 
+// Catalyst request context type
+type CatalystRequest = Record<string, unknown>;
+
 // Helper to get Catalyst app from request
-let currentRequest: Request | null = null;
+let currentRequest: CatalystRequest | null = null;
 
 export function setCatalystRequest(req: Request) {
-  currentRequest = req;
+  // Cast Express Request to the type Catalyst expects
+  currentRequest = req as unknown as CatalystRequest;
 }
 
 function getCatalystApp() {
