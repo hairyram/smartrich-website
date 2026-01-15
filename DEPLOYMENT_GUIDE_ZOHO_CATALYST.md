@@ -182,7 +182,7 @@ export interface InsertContactSubmission {
   name: string;
   email: string;
   phone: string;
-  message?: string;
+  message?: string | null;
 }
 
 export interface IStorage {
