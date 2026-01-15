@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, setCatalystRequest } from "./storage-catalyst";
 import { insertContactSubmissionSchema } from "@shared/schema";
 import { z } from "zod";
+
 
 const contactFormSchema = insertContactSubmissionSchema.extend({
   recaptchaToken: z.string().min(1, "reCAPTCHA verification required"),
@@ -34,10 +35,17 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
   }
 }
 
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+
+  app.use((req, res, next) => {
+  setCatalystRequest(req);
+  next();
+});
   
   // Contact form submission endpoint
   app.post("/api/contact", async (req, res) => {

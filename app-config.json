@@ -1,0 +1,17 @@
+{
+  "command": "npm start",
+  "build_path": ".",
+  "build": {
+    "command": "npm run build:catalyst",
+    "output_directory": "."
+  },
+  "env_variables": {
+    "NODE_ENV": "production",
+    "VITE_RECAPTCHA_SITE_KEY": "6Lc_IQcrAAAAAADhepNSA7u9DLaHGbUOHfrJC05U",
+    "RECAPTCHA_SECRET_KEY": "6Lc_IQcrAAAAAEtHSLI2DmafiO0wn0UdnRv7LpNy",
+    "SESSION_SECRET": "FPMKmpSgA5iKN8zE0ULP6kiV9DpgOQeb"
+  },
+  "stack": "node18",
+  "memory": 256,
+  "scripts": {}
+}
