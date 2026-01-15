@@ -415,9 +415,10 @@ Add the following (no database URL needed when using Catalyst Data Store):
 | Variable | Value |
 |----------|-------|
 | `NODE_ENV` | `production` |
-| `RECAPTCHA_SECRET_KEY` | `your-recaptcha-secret` |
-| `VITE_RECAPTCHA_SITE_KEY` | `your-recaptcha-site-key` |
+| `ALTCHA_HMAC_KEY` | `your-random-secret-key` (optional, defaults to built-in key) |
 | `SESSION_SECRET` | `your-session-secret` |
+
+**Note:** ALTCHA is a self-hosted, open-source CAPTCHA alternative that requires no external API keys. The `ALTCHA_HMAC_KEY` is used for challenge signing and can be any random string.
 
 ### 5.3 Redeploy with Environment Variables
 
@@ -564,7 +565,7 @@ npm start
 
 - [ ] Environment variables set in Catalyst Console (not in code)
 - [ ] HTTPS enabled (automatic with Catalyst)
-- [ ] reCAPTCHA configured for contact form
+- [ ] ALTCHA spam protection enabled (self-hosted, no external dependencies)
 - [ ] Database credentials secured
 - [ ] Session secret is strong and random
 - [ ] Production environment has no debug logs
