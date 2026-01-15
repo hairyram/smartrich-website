@@ -29,15 +29,14 @@ npm install zcatalyst-sdk-node
 
 ### 1.2 Modify Server Entry Point
 
-Create `catalyst-index.js` in the project root:
+Create `catalyst-index.ts` in the project root:
 
-```javascript
-const express = require('express');
-const { createServer } = require('http');
+```typescript
+import express from 'express';
+import { createServer } from 'http';
+import { registerRoutes } from './server/routes';
+
 const app = express();
-
-// Import your existing routes
-const { registerRoutes } = require('./dist/routes');
 
 // Catalyst uses this environment variable for the port
 const PORT = process.env.X_ZOHO_CATALYST_LISTEN_PORT || 5000;
@@ -67,7 +66,7 @@ Add a Catalyst-specific start script:
 ```json
 {
   "scripts": {
-    "start": "node catalyst-index.js",
+    "start": "tsx catalyst-index.ts",
     "build": "vite build && esbuild server/index.ts --bundle --platform=node --outdir=dist --external:pg-native",
     "build:catalyst": "npm run build"
   }
@@ -156,8 +155,7 @@ Create a new file `server/storage-catalyst.ts` with the complete implementation:
 // Complete Catalyst Data Store implementation for all IStorage methods
 
 import type { Request } from 'express';
-
-const catalyst = require('zcatalyst-sdk-node');
+import catalyst from 'zcatalyst-sdk-node';
 
 // Types (matching your existing schema)
 export interface User {
@@ -486,13 +484,14 @@ Catalyst automatically tracks:
 smartrich-website/
 ├── catalyst.json          # Catalyst project config
 ├── app-config.json        # AppSail configuration
-├── catalyst-index.js      # Catalyst entry point
+├── catalyst-index.ts      # Catalyst entry point
 ├── package.json
 ├── dist/                  # Built application
 │   ├── public/           # Frontend assets
 │   └── *.js              # Backend code
 ├── client/               # React source
 ├── server/               # Express source
+│   └── storage-catalyst.ts  # Catalyst Data Store implementation
 └── shared/               # Shared types
 ```
 
