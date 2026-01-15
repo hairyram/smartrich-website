@@ -369,40 +369,17 @@ import { storage, setCatalystRequest } from './storage-catalyst';
 
 ---
 
-## Step 4: Environment Variables
+## Step 4: Initial Deployment
 
-### 4.1 Configure in Catalyst Console
+Deploy your app first to create the AppSail service in Catalyst Console.
 
-Go to **Catalyst Console** → **Project Settings** → **Environment Variables**
-
-Add the following (no database URL needed when using Catalyst Data Store):
-
-| Variable | Value |
-|----------|-------|
-| `NODE_ENV` | `production` |
-| `RECAPTCHA_SECRET_KEY` | `your-recaptcha-secret` |
-| `VITE_RECAPTCHA_SITE_KEY` | `your-recaptcha-site-key` |
-| `SESSION_SECRET` | `your-session-secret` |
-
-### 4.2 Access in Code
-
-Environment variables are automatically available via `process.env`:
-
-```javascript
-const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-```
-
----
-
-## Step 5: Build and Deploy
-
-### 5.1 Build the Application
+### 4.1 Build the Application
 
 ```bash
 npm run build:catalyst
 ```
 
-### 5.2 Deploy to Catalyst
+### 4.2 Deploy to Catalyst
 
 ```bash
 catalyst deploy
@@ -414,14 +391,55 @@ The CLI will:
 3. Deploy to Catalyst's infrastructure
 4. Provide a live URL
 
-### 5.3 Verify Deployment
-
 After deployment, you'll receive a URL like:
 ```
 https://your-project.zohocatalyst.com
 ```
 
-Visit this URL to verify your website is live.
+**Note:** The app may not work correctly yet because environment variables are not configured. That's expected - we'll add them in the next step.
+
+---
+
+## Step 5: Configure Environment Variables
+
+Now that your AppSail app exists in the Console, you can configure environment variables.
+
+### 5.1 Open Configuration in Catalyst Console
+
+Go to **Catalyst Console** → **Your AppSail App** → **Configuration** tab → **Environment Variables**
+
+### 5.2 Add Environment Variables
+
+Click **Create Variable** to add each variable. You can set different values for Development and Production environments using the dropdown at the top.
+
+Add the following (no database URL needed when using Catalyst Data Store):
+
+| Variable | Value |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `RECAPTCHA_SECRET_KEY` | `your-recaptcha-secret` |
+| `VITE_RECAPTCHA_SITE_KEY` | `your-recaptcha-site-key` |
+| `SESSION_SECRET` | `your-session-secret` |
+
+### 5.3 Redeploy with Environment Variables
+
+After adding environment variables, redeploy your app:
+
+```bash
+catalyst deploy
+```
+
+### 5.4 Verify Deployment
+
+Visit your app URL to verify the website is working correctly with environment variables configured.
+
+### 5.5 Access in Code
+
+Environment variables are automatically available via `process.env`:
+
+```javascript
+const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+```
 
 ---
 
