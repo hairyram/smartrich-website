@@ -14,16 +14,8 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useCallback, useState } from "react";
-
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (callback: () => void) => void;
-      execute: (siteKey: string, options: { action: string }) => Promise<string>;
-    };
-  }
-}
+import { useRef } from "react";
+import "altcha";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -32,11 +24,9 @@ const formSchema = z.object({
   message: z.string().optional(),
 });
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
-
 export function CTA() {
   const { toast } = useToast();
-  const [recaptchaLoaded, setRecaptchaLoaded] = useState(false);
+  const altchaRef = useRef<HTMLDivElement>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,44 +38,19 @@ export function CTA() {
     },
   });
 
-  useEffect(() => {
-    if (!RECAPTCHA_SITE_KEY) return;
-    
-    const script = document.createElement("script");
-    script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
-    script.async = true;
-    script.onload = () => {
-      window.grecaptcha.ready(() => {
-        setRecaptchaLoaded(true);
-      });
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
-
-  const getRecaptchaToken = useCallback(async (): Promise<string> => {
-    console.log("reCAPTCHA Debug - Site key:", RECAPTCHA_SITE_KEY ? RECAPTCHA_SITE_KEY.substring(0, 10) + "..." : "NOT SET");
-    console.log("reCAPTCHA Debug - Loaded:", recaptchaLoaded);
-    
-    if (!RECAPTCHA_SITE_KEY || !recaptchaLoaded) {
-      return "no-recaptcha-configured";
-    }
-    const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact_form" });
-    console.log("reCAPTCHA Debug - Token length:", token.length);
-    return token;
-  }, [recaptchaLoaded]);
-
   const submitMutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const recaptchaToken = await getRecaptchaToken();
+      const altchaInput = altchaRef.current?.querySelector('input[name="altcha"]') as HTMLInputElement | null;
+      const altchaPayload = altchaInput?.value || "";
+      
+      if (!altchaPayload) {
+        throw new Error("Please complete the verification");
+      }
       
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, recaptchaToken }),
+        body: JSON.stringify({ ...values, altcha: altchaPayload }),
       });
 
       if (!response.ok) {
@@ -205,6 +170,14 @@ export function CTA() {
                   )}
                 />
 
+                <div ref={altchaRef} className="flex justify-center">
+                  <altcha-widget
+                    challengeurl="/api/altcha/challenge"
+                    hidefooter
+                    data-testid="altcha-widget"
+                  ></altcha-widget>
+                </div>
+
                 <Button 
                   type="submit" 
                   size="lg" 
@@ -214,20 +187,6 @@ export function CTA() {
                 >
                   {submitMutation.isPending ? "Submitting..." : "Get Started Now"}
                 </Button>
-                
-                {RECAPTCHA_SITE_KEY && (
-                  <p className="text-xs text-muted-foreground text-center mt-4">
-                    This site is protected by reCAPTCHA and the Google{" "}
-                    <a href="https://policies.google.com/privacy" className="underline" target="_blank" rel="noopener noreferrer">
-                      Privacy Policy
-                    </a>{" "}
-                    and{" "}
-                    <a href="https://policies.google.com/terms" className="underline" target="_blank" rel="noopener noreferrer">
-                      Terms of Service
-                    </a>{" "}
-                    apply.
-                  </p>
-                )}
               </form>
             </Form>
           </div>
