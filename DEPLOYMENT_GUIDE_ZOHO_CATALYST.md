@@ -38,20 +38,15 @@ import { registerRoutes } from './server/routes';
 
 const app = express();
 
-// Catalyst uses this environment variable for the port
 const PORT = process.env.X_ZOHO_CATALYST_LISTEN_PORT || 5000;
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files (built frontend)
 app.use(express.static('dist/public'));
 
-// Initialize server
 const httpServer = createServer(app);
 
-// Register API routes
 registerRoutes(httpServer, app).then(() => {
   httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
@@ -59,19 +54,22 @@ registerRoutes(httpServer, app).then(() => {
 });
 ```
 
+**Note:** This file uses a relative path `'dist/public'` which works because Catalyst runs from the project root.
+
 ### 1.3 Update package.json
 
-Add a Catalyst-specific start script:
+Add Catalyst-specific scripts:
 
 ```json
 {
   "scripts": {
-    "start": "tsx catalyst-index.ts",
-    "build": "vite build && esbuild server/index.ts --bundle --platform=node --outdir=dist --external:pg-native",
-    "build:catalyst": "npm run build"
+    "build:catalyst": "vite build --config vite.config.catalyst.ts && npx esbuild catalyst-index.ts --bundle --platform=node --format=esm --outfile=catalyst-index.js --external:zcatalyst-sdk-node",
+    "start": "node catalyst-index.js"
   }
 }
 ```
+
+This builds the frontend with Vite and compiles the server entry point to JavaScript.
 
 ---
 
