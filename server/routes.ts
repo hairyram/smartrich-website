@@ -1,9 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage, setCatalystRequest } from "./storage-catalyst";
+import { storage } from "./storage";
 import { insertContactSubmissionSchema } from "@shared/schema";
 import { z } from "zod";
-
 
 const contactFormSchema = insertContactSubmissionSchema.extend({
   recaptchaToken: z.string().min(1, "reCAPTCHA verification required"),
@@ -16,6 +15,11 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
     console.warn("RECAPTCHA_SECRET_KEY not set - skipping verification");
     return true;
   }
+
+  // Debug: Log key prefix and token prefix
+  console.log("reCAPTCHA Debug - Secret key starts with:", secretKey.substring(0, 10) + "...");
+  console.log("reCAPTCHA Debug - Token starts with:", token.substring(0, 20) + "...");
+  console.log("reCAPTCHA Debug - Token length:", token.length);
 
   try {
     const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
@@ -37,17 +41,10 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
   }
 }
 
-
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-
-
-  app.use((req, res, next) => {
-  setCatalystRequest(req);
-  next();
-});
   
   // Contact form submission endpoint
   app.post("/api/contact", async (req, res) => {
