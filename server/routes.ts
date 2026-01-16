@@ -1,15 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage-catalyst";
 import { insertContactSubmissionSchema } from "@shared/schema";
 import { z } from "zod";
 import { createChallenge, verifySolution } from "altcha-lib";
+
 
 const contactFormSchema = insertContactSubmissionSchema.extend({
   altcha: z.string().min(1, "ALTCHA verification required"),
 });
 
-const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || "smartrich-altcha-secret-key-2024";
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || "this-random-altcha-secret-key-2024";
 
 export async function registerRoutes(
   httpServer: Server,

@@ -2,7 +2,7 @@
 // Complete Catalyst Data Store implementation for all IStorage methods
 
 import type { Request } from 'express';
-import catalyst from 'zcatalyst-sdk-node';
+import catalyst from "zcatalyst-sdk-node";
 
 // Types (matching your existing schema)
 export interface User {

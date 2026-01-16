@@ -5,9 +5,6 @@ import { createServer } from "http";
 // server/storage-catalyst.ts
 import catalyst from "zcatalyst-sdk-node";
 var currentRequest = null;
-function setCatalystRequest(req) {
-  currentRequest = req;
-}
 function getCatalystApp() {
   if (!currentRequest) {
     throw new Error("Catalyst request not set. Call setCatalystRequest(req) first.");
@@ -141,32 +138,24 @@ var insertContactSubmissionSchema = createInsertSchema(contactSubmissions).omit(
 
 // server/routes.ts
 import { z } from "zod";
+import { createChallenge, verifySolution } from "altcha-lib";
 var contactFormSchema = insertContactSubmissionSchema.extend({
-  recaptchaToken: z.string().min(1, "reCAPTCHA verification required")
+  altcha: z.string().min(1, "ALTCHA verification required")
 });
-async function verifyRecaptcha(token) {
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-  if (!secretKey) {
-    console.warn("RECAPTCHA_SECRET_KEY not set - skipping verification");
-    return true;
-  }
-  try {
-    const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `secret=${secretKey}&response=${token}`
-    });
-    const data = await response.json();
-    return data.success && (data.score === void 0 || data.score >= 0.5);
-  } catch (error) {
-    console.error("reCAPTCHA verification failed:", error);
-    return false;
-  }
-}
+var ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || "this-random-altcha-secret-key-2024";
 async function registerRoutes(httpServer2, app2) {
-  app2.use((req, res, next) => {
-    setCatalystRequest(req);
-    next();
+  app2.get("/api/altcha/challenge", async (_req, res) => {
+    try {
+      const challenge = await createChallenge({
+        hmacKey: ALTCHA_HMAC_KEY,
+        maxNumber: 5e4,
+        expires: new Date(Date.now() + 10 * 60 * 1e3)
+      });
+      res.json(challenge);
+    } catch (error) {
+      console.error("ALTCHA challenge error:", error);
+      res.status(500).json({ error: "Failed to generate challenge" });
+    }
   });
   app2.post("/api/contact", async (req, res) => {
     try {
@@ -177,10 +166,10 @@ async function registerRoutes(httpServer2, app2) {
           details: parsed.error.flatten()
         });
       }
-      const { recaptchaToken, ...submissionData } = parsed.data;
-      const isHuman = await verifyRecaptcha(recaptchaToken);
-      if (!isHuman) {
-        return res.status(403).json({ error: "reCAPTCHA verification failed" });
+      const { altcha, ...submissionData } = parsed.data;
+      const isValid = await verifySolution(altcha, ALTCHA_HMAC_KEY, true);
+      if (!isValid) {
+        return res.status(403).json({ error: "ALTCHA verification failed" });
       }
       const submission = await storage.createContactSubmission(submissionData);
       return res.status(201).json({
