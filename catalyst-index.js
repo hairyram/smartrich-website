@@ -139,6 +139,10 @@ var insertContactSubmissionSchema = createInsertSchema(contactSubmissions).omit(
 // server/routes.ts
 import { z } from "zod";
 import { createChallenge, verifySolution } from "altcha-lib";
+import crypto from "crypto";
+if (typeof globalThis.crypto === "undefined") {
+  globalThis.crypto = crypto;
+}
 var contactFormSchema = insertContactSubmissionSchema.extend({
   altcha: z.string().min(1, "ALTCHA verification required")
 });
