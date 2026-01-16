@@ -5,6 +5,9 @@ import { createServer } from "http";
 // server/storage-catalyst.ts
 import catalyst from "zcatalyst-sdk-node";
 var currentRequest = null;
+function setCatalystRequest(req) {
+  currentRequest = req;
+}
 function getCatalystApp() {
   if (!currentRequest) {
     throw new Error("Catalyst request not set. Call setCatalystRequest(req) first.");
@@ -195,6 +198,10 @@ var PORT = process.env.X_ZOHO_CATALYST_LISTEN_PORT || 5e3;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("dist/public"));
+app.use((req, res, next) => {
+  setCatalystRequest(req);
+  next();
+});
 var httpServer = createServer(app);
 registerRoutes(httpServer, app).then(() => {
   httpServer.listen(PORT, () => {
